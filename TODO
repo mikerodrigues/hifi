@@ -1,0 +1,7 @@
+pseudo sources (spotify, slacker radio, youtube)
+bluetooth
+am/fm
+abstract out debouncing
+save state on the Hifi object (e.g. source, station, etc.)
+state and debouncing should be related!!!!!!!
+ugh and state objects should be a goddamn object
