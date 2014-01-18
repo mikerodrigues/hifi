@@ -42,7 +42,7 @@ module Hifi
 
     def send_data(data)
       puts "Sent (#{data.to_eiscp.size}): '#{data.to_eiscp.to_s.inspect}';"
-      super(data.to_eiscp)
+      super(data.to_eiscp + "\n")
     end
 
     def unbind
