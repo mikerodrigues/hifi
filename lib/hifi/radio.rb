@@ -1,5 +1,27 @@
 module Hifi
   module Radio
+    STATE_KEY = "station"
+    PARAMS = ["TUN"]
+
+    def self.get_params
+      PARAMS
+    end
+
+    def self.parse_param(param, _, hifi)
+      return if param == "N/A" 
+      current_volume = param.to_i(16)
+
+      if get_source == "FM"
+        current_station = param.to_i / 100
+      elsif get_source == "AM"
+        current_station = param.to_i
+      else
+        current_station = param
+      end
+      puts "Current station: #{current_station} #{get_source}"
+      hifi.set_state(STATE_KEY, current_station)
+    end
+
 
     def station=(freq)
       clean_freq =  if source.nil?
@@ -32,10 +54,9 @@ module Hifi
       end
     end
 
-    STATE_KEY = "station"
 
-    def station
-      is_expired?(STATE_KEY) ? set_state(STATE_KEY, get_station) : get_state(STATE_KEY)
-    end
+    # def station
+    #   is_expired?(STATE_KEY) ? set_state(STATE_KEY, get_station) : get_state(STATE_KEY)
+    # end
   end
 end 

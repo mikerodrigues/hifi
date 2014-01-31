@@ -1,30 +1,31 @@
 module Hifi
-  class Volume
+  module Volume
 
     STATE_KEY = "volume"
+    PARAMS = ["MVL"]
 
-    def initialize(rec)
-      @rec = rec
+    def self.get_params
+      PARAMS
     end
 
-    def parse(param)
-      puts "Parsing: #{param}"
+    def self.parse_param(param, _, hifi)
       return if param == "N/A"
-      volume = param.to_i(16)
-      puts "Current volume: #{volume}"
+      current_volume = param.to_i(16)
+      puts "Current volume: #{current_volume}"
+      hifi.set_state(STATE_KEY, current_volume)
     end
-
 
     def volume_up
-      rec.cmd("MVL", "UP")
+      cmd("MVL", "UP")
     end
 
     def volume_down
-      rec.cmd("MVL", "DOWN")
+      cmd("MVL", "DOWN")
     end
 
     def get_volume
-      rec.cmd("MVL", "QSTN")
+      cmd("MVL", "QSTN")
+      nil
     end
 
     def volume=(lvl)
@@ -34,15 +35,12 @@ module Hifi
       if lvl_str.size == 1 #hex volume number needs to padded to size 2
         lvl_str = "0#{lvl_str}"
       end
-      rec.cmd("MVL", lvl_str.upcase)
+      cmd("MVL", lvl_str.upcase)
     end
 
-    # def volume
-    #   is_expired?(STATE_KEY) ? set_state(STATE_KEY, get_volume) : get_state(STATE_KEY)
-    # end
 
     # def get_volume
-    #   mode_code = rec.cmd("MVL", "QSTN").parameter
+    #   mode_code = cmd("MVL", "QSTN").parameter
     #   mode_code.sub!(/\x1a$/, '')
     #   mode_code.to_i(16)
     # end
@@ -57,6 +55,12 @@ module Hifi
       @old_volume = nil
       volume = @old_volume
     end
+
+    #used only internally, e.g. if another module needs to see if it needs to turn the volume up or down.
+    def volume
+      get_state(STATE_KEY)
+    end
+
 
   end
 end

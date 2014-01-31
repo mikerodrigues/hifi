@@ -1,16 +1,24 @@
 module Hifi
   module Controllable
+
+    PARAMS = ["NTC", "NSB", "PWR"]
+
+    def self.get_params
+      PARAMS
+    end
+
+
     def play
       check_source!
-      send_without_confirmation("NTC", "PLAY")
+      cmd("NTC", "PLAY")
     end
     def playpause
       check_source!
-      send_without_confirmation("NTC", play_status != PLAYING ? "PLAY" : "PAUSE" )
+      cmd("NTC", play_status != PLAYING ? "PLAY" : "PAUSE" )
     end
     def pause
       check_source!
-      send_without_confirmation("NTC", "PAUSE")
+      cmd("NTC", "PAUSE")
     end
     def next_track
       check_source!
@@ -32,14 +40,16 @@ module Hifi
 
     #need status info
     def off
-      cmd("NSB", "OFF")
+      cmd("PWR", "00")
     end
     def on
-      cmd("NSB", "ON")
+      cmd("PWR", "01")
+      pause if source.controllable?
     end
+    alias_method :standby, :off
 
     def check_source!
-      raise NoMethodError, "The current source isn't controllable." unless source.controllable?
+      raise UncontrollableSourceError, "The current source isn't controllable." unless source.controllable?
     end 
   end
 end

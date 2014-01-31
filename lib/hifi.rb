@@ -12,11 +12,8 @@ require 'eventmachine'
 module Hifi
 
   class Hifi 
-    # include Sources
-    # include Volume
-    # include Radio
-    # include Controllable
-    # include Spotify
+    @@included = [Sources, Volume, Radio, Controllable, Spotify]
+    @@included.each{|mod| include mod }
 
     ONKYO_MAGIC = EISCP::Message.new("ECN", "QSTN", "x").to_eiscp
     ONKYO_PORT = 60128
@@ -26,17 +23,50 @@ module Hifi
     STOPPED = -1
     STALENESS = 60 #seconds
 
-    def initialize(rec=nil) #an EISCP object
+    # some of these are directions for Onkyo official apps.
+    # some are nice-to-haves (like NPU, Network Pop-Up)
+    IGNORED_PARAMS = ["NPU", # pop ups
+                      "NMS", #menu status #TODO
+                      "NTR", #track info #TODO
+                      "NLT" #something dumb
+                     ] 
+
+    #holy shit, green commands send a response back
+    #yellow are sent unsolicited
+    def initialize(ip=nil, port=nil) #an EISCP object
       @state = {}
-      @volume = Volume.new(self)
+      # @volume = Volume.new(self)
+
+      if ip.nil?
+        ips = Hifi.discover
+        if ips.empty?
+          raise IOError, "No Onkyo receivers found!"
+        end
+        ip = ips[0][1]
+      end
+      port = port.nil? ? ONKYO_PORT : port
+
+      @known_params = {}
+      @@included.each{|mod| mod.get_params.each{|par| @known_params[par] = mod }}
+
+      Thread.new do
+        EM.run do
+          @emq = EM::Queue.new
+          EventMachine.connect ip, port, Evceiver, @emq, self
+        end
+      end.join(1) # the join just waits a second to let EM spin up, if something fails, it'll bring the error back into the main thread
+      refresh_basic_state
     end
 
-    def parse(command)
+    def parse(msg)
       #returns lambdas!
-      if command == "MVL"
-        lambda{|param| @volume.parse(param) }
+      command = msg.command
+      if @known_params.include?(command)
+        lambda{|param| @known_params[command].parse_param(param, command, self) }
+      elsif IGNORED_PARAMS.include?(command)
+        lambda{|a| }
       else
-        puts "parser recieved: #{command}"
+        puts "parser doesn't understand: #{command}; #{msg.inspect}"
         lambda{|a| }
       end
     end
@@ -79,11 +109,8 @@ module Hifi
     # However, modules should transparently be the ones fetching (so #volume is still okay)
 
     def refresh_basic_state
-      @source = source
-      @volume = volume
-      if @source.controllable?
-        @play_status = STOPPED
-      end
+      get_source
+      get_volume
     end
 
     def set_state(k, v, custom_expires=STALENESS)
@@ -92,7 +119,8 @@ module Hifi
       @state[k][:expires] = Time.now - (custom_expires - STALENESS)
       v
     end
-    def get_state(k)
+    def get_state(k, default=nil)
+      return default unless @state.include?(k) && @state[k].include?(:result)
       @state[k][:result]
     end
     def get_state_expires(k)
@@ -109,11 +137,15 @@ module Hifi
     #   nil
     # end
 
+    def cmd(command, val)
+      @emq.push( raw_cmd command, val )
+    end
+
+    private
     def raw_cmd(command, val)
       eiscp_packet = EISCP::Message.new(command, val.to_s) 
       eiscp_packet
     end
-    # alias_method :cmd, :raw_cmd
 
     # def parse_responses(resps)
     #   return [] if resps.nil?
@@ -131,9 +163,12 @@ module Hifi
     #   end
     #   @debounced[method_name][:result]
     # end
-
+    def to_s
+      "< Hifi volume=#{volume}, source=#{source} >"
+    end
   end
   class NotYetImplementedError < Exception; end
+  class UncontrollableSourceError < Exception; end
   class NoResponseError < Exception; end
   class EmptyMessage
     def parameter
@@ -143,35 +178,23 @@ module Hifi
 end
 
 
-ips = Hifi::Hifi.discover
-if ips.empty?
-  raise IOError, "No Onkyo receivers found!"
-end
-ip = ips[0][1]
 
 h = Hifi::Hifi.new
 
-myq = Queue.new
-
-Thread.new do
-  EM.run do
-    @emq = EM::Queue.new
-    @emq.push( h.raw_cmd("PWR", "QSTN") )
-    EventMachine.connect ip, Hifi::Hifi::ONKYO_PORT, Hifi::Evceiver, @emq, myq, h
-   end
-end.join(1) # the join just waits a second to let EM spin up, if something fails, it'll bring the error back into the main thread
+# myq = Queue.new
 
 # @emq.push( h.raw_cmd("MVL", "QSTN") )
 # @emq.push( h.raw_cmd("MVL", "QSTN") )
-@emq.push( h.raw_cmd("MVL", "QSTN") )
-sleep 20
-@emq.push( h.volume ) ) #hex, so that's 32
+# @emq.push( h.raw_cmd("MVL", "QSTN") )
+# sleep 20
+# @emq.push( h.volume = 20 ) #hex, so that's 32
 
 #puts myq.pop
-puts "sl"
-sleep 5
-puts "eep"
-
+# h.get_volume
+# h.get_source
+# sleep 10
+# h.volume = 39
+# h.source = "FM"
 
 
 # require 'thread'

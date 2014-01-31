@@ -5,17 +5,16 @@ module Hifi
   class Evceiver < EventMachine::Connection
     attr_reader :queue
 
-    def initialize(q, other_q, hifi)
+    def initialize(q, hifi)
       @hifi = hifi || Hifi.new
       @queue = q
-      @resp_queue = other_q
 
       cb = Proc.new do |msg|
         send_data(msg)
-        q.pop &cb
+        @queue.pop &cb
       end
 
-      q.pop &cb
+      @queue.pop &cb
     end
 
     def post_init
@@ -23,15 +22,18 @@ module Hifi
     end
 
     def receive_data(data)
-      puts "Received (#{data.size}):'#{data.inspect}';"
+      # puts "Received (#{data.size}):'#{data.inspect}';"
       # hifi.parse_responses(data)
       # emq
       @buffer << data
       msgs = parse_buffer
       msgs.each do |msg|
-        puts msg.inspect
-        @hifi.parse(msg.command).call(msg.parameter)
-        @resp_queue.push(msg.inspect)
+        # puts msg.inspect
+        begin
+          @hifi.parse(msg).call(msg.parameter)
+        rescue Exception => e
+          puts "Error:  #{msg.inspect}\n#{e.message}\n#{e.backtrace.join("\n")};"
+        end
       end
     end
 
@@ -41,7 +43,7 @@ module Hifi
     end
 
     def send_data(data)
-      puts "Sent (#{data.to_eiscp.size}): '#{data.to_eiscp.to_s.inspect}';"
+      puts "Sent #{@queue.size}: '#{data.to_eiscp.to_s.inspect}';"
       super(data.to_eiscp + "\n")
     end
 

@@ -30,35 +30,51 @@ module Hifi
       Source.new("24", "FM", false),
       Source.new("25", "AM", false),
       Source.new("2B", "Net", true),
+      #Source.new("") #aux #TODO
       Source.new('', "Unknown Source", true)
     ]
     STATE_KEY = "source"
+    PARAMS = ["SLI"]
+
+    def self.get_params
+      PARAMS
+    end
+
+
+    def self.parse_param(param, _, hifi)
+      return if param == "N/A"
+      current_source = SOURCES.find{|s| s.code.upcase == param.upcase }
+      puts "Current source: #{current_source}"
+      hifi.set_state(STATE_KEY, current_source)
+    end
+
 
     def source=(mode_name)
       s = SOURCES.find{|s| s.name.upcase == mode_name.upcase }
       cmd("SLI", s.code)
+      begin
+        pause
+      rescue UncontrollableSourceError => e
+        #it's okay.
+      end
+      nil
     end
 
     def raw_source=(mode_code)
       cmd("SLI", mode_code)
+      nil
     end
 
-    def raw_source
-      resp = cmd("SLI", "QSTN")
-      mode_code = resp.parameter
-      mode_code
+
+    def get_source
+      cmd("SLI", "QSTN")
+      nil
     end
 
     def source
-      is_expired?(STATE_KEY) ? set_state(STATE_KEY, get_source) :  get_state(STATE_KEY)
+      get_state(STATE_KEY)
     end
 
-    def get_source
-      puts "getting source via network"
-      mode_code = raw_source || ''
-      @last_source_check = Time.now
-      SOURCES.find{|s| s.code.upcase == mode_code.upcase }
-    end
 
   end
 end
