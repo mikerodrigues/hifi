@@ -1,7 +1,7 @@
 PATH
   remote: ../onkyo_eiscp_ruby
   specs:
-    onkyo_eiscp_ruby (0.0.3)
+    onkyo_eiscp_ruby (1.0.4)
 
 GEM
   specs:

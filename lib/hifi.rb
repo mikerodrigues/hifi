@@ -1,5 +1,4 @@
 require_relative 'hifi/evceiver'
-require_relative '../../onkyo_eiscp_ruby/lib/eiscp'
 require_relative 'hifi/sources'
 require_relative 'hifi/volume'
 require_relative 'hifi/controllable'
@@ -8,6 +7,7 @@ require_relative 'hifi/spotify'
 require 'socket'
 require 'thread'
 require 'eventmachine'
+require 'eiscp'
 
 module Hifi
 
@@ -15,8 +15,6 @@ module Hifi
     @@included = [Sources, Volume, Radio, Controllable, Spotify]
     @@included.each{|mod| include mod }
 
-    ONKYO_MAGIC = EISCP::Message.new("ECN", "QSTN", "x").to_eiscp
-    ONKYO_PORT = 60128
 
     PLAYING = 1
     PAUSED = 0
@@ -44,7 +42,7 @@ module Hifi
         end
         ip = ips[0][1]
       end
-      port = port.nil? ? ONKYO_PORT : port
+      port = port.nil? ? EISCP::Receiver::Connection::ONKYO_PORT : port
 
       @known_params = {}
       @@included.each{|mod| mod.get_params.each{|par| @known_params[par] = mod }}
@@ -77,7 +75,7 @@ module Hifi
     def Hifi.discover
       sock = UDPSocket.new
       sock.setsockopt(Socket::SOL_SOCKET, Socket::SO_BROADCAST, true)
-      sock.send(ONKYO_MAGIC, 0, '<broadcast>', ONKYO_PORT)
+      sock.send(EISCP::Receiver::Discovery::ONKYO_MAGIC, 0, '<broadcast>', EISCP::Receiver::Connection::ONKYO_PORT)
       data = []
       while true
         ready = IO.select([sock], nil, nil, 0.5)
@@ -143,7 +141,7 @@ module Hifi
 
     private
     def raw_cmd(command, val)
-      eiscp_packet = EISCP::Message.new(command, val.to_s) 
+      eiscp_packet = EISCP::Message.new(command: command, value: val.to_s) 
       eiscp_packet
     end
 
@@ -171,7 +169,7 @@ module Hifi
   class UncontrollableSourceError < Exception; end
   class NoResponseError < Exception; end
   class EmptyMessage
-    def parameter
+    def value
       nil
     end
   end
@@ -179,7 +177,6 @@ end
 
 
 
-h = Hifi::Hifi.new
 
 # myq = Queue.new
 

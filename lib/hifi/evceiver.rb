@@ -1,5 +1,5 @@
 require 'eventmachine'
-require_relative '../../../onkyo_eiscp_ruby/lib/eiscp/message'
+require 'eiscp/parser'
 
 module Hifi
   class Evceiver < EventMachine::Connection
@@ -30,7 +30,7 @@ module Hifi
       msgs.each do |msg|
         # puts msg.inspect
         begin
-          @hifi.parse(msg).call(msg.parameter)
+          @hifi.parse(msg).call(msg.value)
         rescue Exception => e
           puts "Error:  #{msg.inspect}\n#{e.message}\n#{e.backtrace.join("\n")};"
         end
@@ -39,7 +39,7 @@ module Hifi
 
     def parse_buffer
       *msgs, @buffer = @buffer.split("\x1A\r\n", -1) #TODO: there are other EOF sequences
-      msgs.map{|resp| EISCP::Message.parse(resp) }
+      msgs.map{|resp| EISCP::Parser.parse(resp) }
     end
 
     def send_data(data)

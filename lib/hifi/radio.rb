@@ -44,7 +44,7 @@ module Hifi
       #TODO: use source too (e.g. if FM, 09310 is 93.1, but 1400 is 1400 AM )
       resp = cmd("TUN", "QSTN")
       return nil if resp.nil?
-      freq = resp.parameter
+      freq = resp.value
       if source.nil?
         freq
       elsif source.name == "FM"
