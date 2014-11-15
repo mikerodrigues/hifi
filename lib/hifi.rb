@@ -28,9 +28,12 @@ module Hifi
                       "NTR", #track info #TODO
                       "NLT" #something dumb
                      ] 
-
-    #holy shit, green commands send a response back
-    #yellow are sent unsolicited
+    # When referring to commands as documented in the API, take note of the
+    # following key for command cell colors:
+    # holy shit, green commands send a response back
+    # yellow are sent unsolicited
+    #
+    #
     def initialize(ip=nil, port=nil) #an EISCP object
       @state = {}
       # @volume = Volume.new(self)

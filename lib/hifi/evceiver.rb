@@ -38,7 +38,7 @@ module Hifi
     end
 
     def parse_buffer
-      *msgs, @buffer = @buffer.split("\x1A\r\n", -1) #TODO: there are other EOF sequences
+      *msgs, @buffer = @buffer.split("\r\n", -1) #TODO: there are other EOF sequences
       msgs.map{|resp| EISCP::Parser.parse(resp) }
     end
 

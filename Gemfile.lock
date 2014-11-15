@@ -1,15 +1,11 @@
-PATH
-  remote: ../onkyo_eiscp_ruby
-  specs:
-    onkyo_eiscp_ruby (1.0.4)
-
 GEM
   specs:
     eventmachine (1.0.3)
+    onkyo_eiscp_ruby (1.0.4)
 
 PLATFORMS
   ruby
 
 DEPENDENCIES
   eventmachine
-  onkyo_eiscp_ruby!
+  onkyo_eiscp_ruby
